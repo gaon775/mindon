@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학교 교무행정 - 학생 상담 관리 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        google: {
+                            blue: '#1a73e8',
+                            hoverBlue: '#1557b0',
+                            lightBlue: '#e8f0fe',
+                            grayBg: '#f8f9fa',
+                            border: '#dadce0',
+                            textMain: '#202124',
+                            textSub: '#5f6368',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #202124;
+        }
+        /* Scrollbar custom styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body class="bg-google-grayBg min-h-screen text-google-textMain antialiased pb-12">
+
+    <!-- Main 1000px Max-Width Layout Container -->
+    <div class="max-w-[1000px] mx-auto px-4 py-6">
+        
+        <!-- Header Section -->
+        <header class="bg-white rounded-2xl shadow-sm border border-google-border p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-google-lightBlue rounded-xl text-google-blue">
+                    <i data-lucide="notebook-pen" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">교무행정 학생 상담 관리 시스템</h1>
+                    <p class="text-sm text-google-textSub">학생 명단 관리 및 상담 기록 대시보드 (오프라인/로컬저장 지원)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 self-end md:self-auto">
+                <button id="btnDataBackup" onclick="exportJSONData()" class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                    <i data-lucide="database-backup" class="w-4 h-4"></i> Data 백업
+                </button>
+                <button id="btnSampleData" onclick="loadSampleData()" class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-google-blue bg-google-lightBlue hover:bg-blue-100 rounded-lg transition-colors">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i> 샘플 데이터 생성
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-google-border mb-6 space-x-2 bg-white px-3 pt-2 rounded-xl border shadow-sm">
+            <button id="tabDashboardBtn" onclick="switchTab('dashboard')" class="tab-btn flex items-center gap-2 py-3 px-5 border-b-2 font-semibold text-sm transition-all text-google-blue border-google-blue">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                상담 기록 대시보드
+            </button>
+            <button id="tabStudentsBtn" onclick="switchTab('students')" class="tab-btn flex items-center gap-2 py-3 px-5 border-b-2 font-medium text-sm transition-all text-google-textSub border-transparent hover:text-google-blue hover:border-gray-300">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                학생 명단 설정
+                <span id="studentCountBadge" class="ml-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 1: 상담 기록 대시보드 TAB CONTENT -->
+        <!-- ========================================================================= -->
+        <div id="tabDashboard" class="space-y-6">
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-google-border shadow-sm flex items-center gap-4">
+                    <div class="p-3 bg-blue-50 text-google-blue rounded-xl">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-google-textSub font-medium">총 상담 기록</p>
+                        <p id="statTotalCount" class="text-2xl font-bold text-gray-800">0건</p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-google-border shadow-sm flex items-center gap-4">
+                    <div class="p-3 bg-green-50 text-green-600 rounded-xl">
+                        <i data-lucide="user-check" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-google-textSub font-medium">등록된 학생 수</p>
+                        <p id="statStudentCount" class="text-2xl font-bold text-gray-800">0명</p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-google-border shadow-sm flex items-center gap-4">
+                    <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                        <i data-lucide="calendar" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-google-textSub font-medium">이번 달 상담</p>
+                        <p id="statMonthlyCount" class="text-2xl font-bold text-gray-800">0건</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Charts Summary Section (Chart.js) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Horizontal Bar Chart: Student Counsel Count -->
+                <div class="bg-white p-5 rounded-2xl border border-google-border shadow-sm flex flex-col">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-google-blue"></i>
+                        학생별 누적 상담 횟수
+                    </h3>
+                    <div class="relative w-full h-56 flex-1 min-h-[220px]">
+                        <canvas id="chartStudentCounsel"></canvas>
+                    </div>
+                </div>
+
+                <!-- Line Chart: Monthly Counsel Trend -->
+                <div class="bg-white p-5 rounded-2xl border border-google-border shadow-sm flex flex-col">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-google-blue"></i>
+                        월별 전체 상담 건수 추이
+                    </h3>
+                    <div class="relative w-full h-56 flex-1 min-h-[220px]">
+                        <canvas id="chartMonthlyCounsel"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Counseling Log Input Form Card -->
+            <div class="bg-white rounded-2xl border border-google-border shadow-sm p-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i data-lucide="square-plus" class="w-5 h-5 text-google-blue"></i>
+                    새 상담 기록 작성
+                </h2>
+
+                <form id="counselForm" onsubmit="handleCounselSubmit(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Student Select -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">학생 선택 <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <select id="inputStudentSelect" required class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-google-blue focus:border-google-blue p-2.5 transition-all">
+                                    <option value="">-- 학생을 선택하세요 --</option>
+                                </select>
+                            </div>
+                            <p id="noStudentNotice" class="text-xs text-amber-600 mt-1 hidden">
+                                ⚠️ 등록된 학생이 없습니다. [학생 명단 설정] 탭에서 먼저 추가해주세요.
+                            </p>
+                        </div>
+
+                        <!-- Date Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">상담 일자 <span class="text-red-500">*</span></label>
+                            <input type="date" id="inputCounselDate" required class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-google-blue focus:border-google-blue p-2.5 transition-all">
+                        </div>
+
+                        <!-- Category Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">상담 분야</label>
+                            <select id="inputCounselCategory" class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-google-blue focus:border-google-blue p-2.5 transition-all">
+                                <option value="학업/성적">학업/성적</option>
+                                <option value="교우관계">교우관계</option>
+                                <option value="진로/적성">진로/적성</option>
+                                <option value="생활지도">생활지도</option>
+                                <option value="가정/신상">가정/신상</option>
+                                <option value="기타" selected>기타</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Content Textarea -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">상담 상세 내용 <span class="text-red-500">*</span></label>
+                        <textarea id="inputCounselContent" required rows="3" placeholder="상담 내용을 관찰 사항, 조치 내역과 함께 구체적으로 적어주세요." class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-google-blue focus:border-google-blue p-3 transition-all resize-y"></textarea>
+                    </div>
+
+                    <!-- Form Action Buttons -->
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="reset" class="px-4 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 text-sm font-medium rounded-xl transition-colors">
+                            초기화
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-google-blue hover:bg-google-hoverBlue text-white text-sm font-semibold rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            상담 저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Counseling Records List & Filter Table Section -->
+            <div class="bg-white rounded-2xl border border-google-border shadow-sm p-6">
+                
+                <!-- Table Header Actions & Filter Controls -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 border-b border-gray-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <i data-lucide="list-text" class="w-5 h-5 text-google-blue"></i>
+                            상담 기록 목록
+                        </h2>
+                        <p class="text-xs text-google-textSub">저장된 기록 검색 및 날짜 구간 필터링</p>
+                    </div>
+
+                    <!-- Export Button -->
+                    <button onclick="exportToCSV()" class="self-start md:self-auto flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        엑셀(CSV) 내보내기
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5 bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                    <!-- Search Input -->
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">학생명/내용 검색</label>
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-gray-400"></i>
+                            <input type="text" id="filterKeyword" oninput="renderCounselTable()" placeholder="학생 이름 또는 상담 내용..." class="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 text-xs rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none">
+                        </div>
+                    </div>
+                    <!-- Date Range Start -->
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">시작일</label>
+                        <input type="date" id="filterStartDate" onchange="renderCounselTable()" class="w-full px-3 py-1.5 bg-white border border-gray-300 text-xs rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none">
+                    </div>
+                    <!-- Date Range End -->
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">종료일</label>
+                        <div class="flex gap-2">
+                            <input type="date" id="filterEndDate" onchange="renderCounselTable()" class="w-full px-3 py-1.5 bg-white border border-gray-300 text-xs rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none">
+                            <button onclick="resetFilters()" title="필터 초기화" class="px-2.5 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs rounded-lg transition-colors flex items-center">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table View -->
+                <div class="overflow-x-auto rounded-xl border border-gray-200">
+                    <table class="w-full text-left text-sm text-gray-700">
+                        <thead class="bg-gray-100 text-xs uppercase font-semibold text-gray-600 border-b border-gray-200">
+                            <tr>
+                                <th scope="col" class="py-3 px-4 w-28">상담일자</th>
+                                <th scope="col" class="py-3 px-4 w-28">학생명</th>
+                                <th scope="col" class="py-3 px-4 w-28">분야</th>
+                                <th scope="col" class="py-3 px-4">상담 내용</th>
+                                <th scope="col" class="py-3 px-4 w-24 text-center">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="counselTableBody" class="divide-y divide-gray-100">
+                            <!-- Rows will be dynamically rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="counselEmptyState" class="hidden text-center py-12">
+                    <div class="p-3 bg-gray-100 text-gray-400 rounded-full inline-block mb-3">
+                        <i data-lucide="inbox" class="w-8 h-8"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-gray-600">상담 기록이 없습니다.</p>
+                    <p class="text-xs text-gray-400 mt-1">상단의 입력 양식을 통해 상담 내역을 저장해보세요.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 2: 학생 명단 설정 TAB CONTENT -->
+        <!-- ========================================================================= -->
+        <div id="tabStudents" class="space-y-6 hidden">
+            <div class="bg-white rounded-2xl border border-google-border shadow-sm p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-gray-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-5 h-5 text-google-blue"></i>
+                            학생 명단 등록 및 관리
+                        </h2>
+                        <p class="text-xs text-google-textSub">상담을 진행할 학생 이름을 미리 등록하세요.</p>
+                    </div>
+                </div>
+
+                <!-- Add Student Form -->
+                <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 mb-6">
+                    <form id="addStudentForm" onsubmit="handleAddStudent(event)" class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex-1">
+                            <input type="text" id="inputStudentName" placeholder="학생 이름을 입력하세요 (예: 김철수)" required class="w-full bg-white border border-gray-300 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-google-blue p-2.5 outline-none transition-all">
+                        </div>
+                        <button type="submit" class="px-5 py-2.5 bg-google-blue hover:bg-google-hoverBlue text-white font-semibold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 shrink-0">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                            학생 추가
+                        </button>
+                    </form>
+                    <p class="text-[11px] text-gray-500 mt-2 pl-1">* 여러 이름을 쉼표(,)로 구분해서 입력하면 한 번에 등록할 수 있습니다. (예: 김철수, 이영희, 박민수)</p>
+                </div>
+
+                <!-- Student List Grid/Table -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center justify-between">
+                        <span>등록된 학생 목록</span>
+                        <span id="studentListCount" class="text-xs font-normal text-gray-500">총 0명</span>
+                    </h3>
+
+                    <div id="studentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        <!-- Dynamic Student Cards Rendered Here -->
+                    </div>
+
+                    <div id="studentEmptyState" class="hidden text-center py-10 border-2 border-dashed border-gray-200 rounded-xl">
+                        <p class="text-xs text-gray-500">등록된 학생이 없습니다. 위에 이름을 입력해 추가해 주세요.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Detail / Edit View Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-google-blue"></i>
+                    상담 기록 상세정보
+                </h3>
+                <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600 rounded-lg p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                    <div>
+                        <span class="text-xs font-semibold text-gray-400 block">학생명</span>
+                        <span id="modalStudent" class="font-bold text-gray-800"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold text-gray-400 block">상담일자</span>
+                        <span id="modalDate" class="text-gray-700"></span>
+                    </div>
+                    <div class="col-span-2 pt-1 border-t border-gray-200">
+                        <span class="text-xs font-semibold text-gray-400 block">분야</span>
+                        <span id="modalCategory" class="inline-block px-2 py-0.5 bg-blue-100 text-google-blue rounded text-xs font-semibold mt-0.5"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 block mb-1">상담 내용</span>
+                    <div id="modalContent" class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 whitespace-pre-wrap text-gray-800 leading-relaxed text-xs max-h-60 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <button onclick="closeDetailModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-xl transition-colors">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal (Replaces alert/confirm) -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-red-100 text-red-600 rounded-xl shrink-0">
+                    <i data-lucide="triangle-alert" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 id="confirmTitle" class="font-bold text-gray-800 text-sm">확인 요청</h3>
+                    <p id="confirmMessage" class="text-xs text-gray-600 mt-0.5">정말 진행하시겠습니까?</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button id="confirmCancelBtn" class="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors">취소</button>
+                <button id="confirmOkBtn" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors">삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Box -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-900/90 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+        <i id="toastIcon" data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toastMessage">처리되었습니다.</span>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- JAVASCRIPT LOGIC SECTION -->
+    <!-- ========================================================================= -->
+    <script>
+        
+        // LocalStorage Keys
+        const STORAGE_KEY_STUDENTS = 'school_admin_students_v1';
+        const STORAGE_KEY_RECORDS = 'school_admin_counsel_records_v1';
+
+        // App State
+        let students = [];
+        let records = [];
+        let confirmAction = null;
+
+        // Chart.js Instances
+        let barChartInstance = null;
+        let lineChartInstance = null;
+
+        // On DOM Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+
+        function initApp() {
+            // Set Default Date Input to Today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inputCounselDate').value = today;
+
+            // Load Data from LocalStorage
+            loadDataFromStorage();
+
+            // '손경오' 학생이 명단에 없는 경우 자동 등록 처리
+            if (!students.some(s => s.name === '손경오')) {
+                students.push({
+                    id: 'std_son_' + Date.now(),
+                    name: '손경오',
+                    createdAt: new Date().toISOString()
+                });
+                students.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+                saveStudentsToStorage();
+            }
+
+            // Refresh UI Views
+            updateStudentDropdown();
+            renderStudentList();
+            renderCounselTable();
+            updateStats();
+
+            // Initialize Lucide Icons
+            lucide.createIcons();
+        }
+
+        // Load Local Storage Data
+        function loadDataFromStorage() {
+            try {
+                const rawStudents = localStorage.getItem(STORAGE_KEY_STUDENTS);
+                const rawRecords = localStorage.getItem(STORAGE_KEY_RECORDS);
+
+                students = rawStudents ? JSON.parse(rawStudents) : [];
+                records = rawRecords ? JSON.parse(rawRecords) : [];
+            } catch (e) {
+                console.error("Local Storage parse error:", e);
+                students = [];
+                records = [];
+            }
+        }
+
+        function saveStudentsToStorage() {
+            localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(students));
+        }
+
+        function saveRecordsToStorage() {
+            localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(records));
+        }
+
+
+        // Tab Switching Handler
+        function switchTab(tabName) {
+            const dashboardTab = document.getElementById('tabDashboard');
+            const studentsTab = document.getElementById('tabStudents');
+            const dashboardBtn = document.getElementById('tabDashboardBtn');
+            const studentsBtn = document.getElementById('tabStudentsBtn');
+
+            if (tabName === 'dashboard') {
+                dashboardTab.classList.remove('hidden');
+                studentsTab.classList.add('hidden');
+
+                dashboardBtn.classList.add('text-google-blue', 'border-google-blue');
+                dashboardBtn.classList.remove('text-google-textSub', 'border-transparent');
+
+                studentsBtn.classList.remove('text-google-blue', 'border-google-blue');
+                studentsBtn.classList.add('text-google-textSub', 'border-transparent');
+            } else {
+                dashboardTab.classList.add('hidden');
+                studentsTab.classList.remove('hidden');
+
+                studentsBtn.classList.add('text-google-blue', 'border-google-blue');
+                studentsBtn.classList.remove('text-google-textSub', 'border-transparent');
+
+                dashboardBtn.classList.remove('text-google-blue', 'border-google-blue');
+                dashboardBtn.classList.add('text-google-textSub', 'border-transparent');
+            }
+            lucide.createIcons();
+        }
+
+
+        // Add Student Form Handler
+        function handleAddStudent(e) {
+            e.preventDefault();
+            const input = document.getElementById('inputStudentName');
+            const nameValue = input.value.trim();
+
+            if (!nameValue) return;
+
+            // Handle comma-separated multiple entries
+            const namesToAdd = nameValue.split(',')
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+
+            let addedCount = 0;
+            namesToAdd.forEach(name => {
+                // Duplicate check
+                if (!students.some(s => s.name === name)) {
+                    students.push({
+                        id: 'std_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        name: name,
+                        createdAt: new Date().toISOString()
+                    });
+                    addedCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                // Sort students alphabetically
+                students.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+                saveStudentsToStorage();
+                updateStudentDropdown();
+                renderStudentList();
+                updateStats();
+                showToast(`${addedCount}명의 학생이 추가되었습니다.`);
+                input.value = '';
+            } else {
+                showToast('이미 등록된 학생명이거나 유효하지 않습니다.', 'warning');
+            }
+        }
+
+        // Render Student Management Grid Cards
+        function renderStudentList() {
+            const grid = document.getElementById('studentGrid');
+            const emptyState = document.getElementById('studentEmptyState');
+            const studentCountBadge = document.getElementById('studentCountBadge');
+            const studentListCount = document.getElementById('studentListCount');
+
+            studentCountBadge.textContent = students.length;
+            studentListCount.textContent = `총 ${students.length}명`;
+
+            if (students.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            
+            grid.innerHTML = students.map(student => {
+                // Count counseling records for this student
+                const counselCount = records.filter(r => r.studentName === student.name).length;
+
+                return `
+                    <div class="bg-white border border-gray-200 rounded-xl p-3.5 flex items-center justify-between shadow-sm hover:border-google-blue hover:shadow transition-all group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-google-lightBlue text-google-blue font-bold text-sm flex items-center justify-center shrink-0">
+                                ${student.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-800">${escapeHtml(student.name)}</h4>
+                                <p class="text-[11px] text-gray-500">상담 기록 ${counselCount}건</p>
+                            </div>
+                        </div>
+                        <button onclick="confirmDeleteStudent('${student.id}', '${escapeHtml(student.name)}')" title="학생 삭제" class="text-gray-300 hover:text-red-500 p-1.5 rounded-lg transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // Update Student Selection Dropdown in Dashboard
+        function updateStudentDropdown() {
+            const select = document.getElementById('inputStudentSelect');
+            const noNotice = document.getElementById('noStudentNotice');
+
+            // Keep header option
+            select.innerHTML = '<option value="">-- 학생을 선택하세요 --</option>';
+
+            if (students.length === 0) {
+                noNotice.classList.remove('hidden');
+            } else {
+                noNotice.classList.add('hidden');
+                students.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.name;
+                    opt.textContent = s.name;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        // Delete Student Action
+        function confirmDeleteStudent(studentId, studentName) {
+            showConfirm(
+                '학생 삭제',
+                `'${studentName}' 학생을 명단에서 삭제하시겠습니까? (기존 작성된 상담 기록은 유지됩니다)`,
+                () => {
+                    students = students.filter(s => s.id !== studentId);
+                    saveStudentsToStorage();
+                    updateStudentDropdown();
+                    renderStudentList();
+                    updateStats();
+                    showToast(`'${studentName}' 학생이 삭제되었습니다.`);
+                }
+            );
+        }
+
+
+        // Handle Counseling Record Form Submission
+        function handleCounselSubmit(e) {
+            e.preventDefault();
+
+            const studentSelect = document.getElementById('inputStudentSelect');
+            const dateInput = document.getElementById('inputCounselDate');
+            const categorySelect = document.getElementById('inputCounselCategory');
+            const contentInput = document.getElementById('inputCounselContent');
+
+            const studentName = studentSelect.value;
+            const counselDate = dateInput.value;
+            const category = categorySelect.value;
+            const content = contentInput.value.trim();
+
+            if (!studentName) {
+                showToast('상담을 진행할 학생을 선택해 주세요.', 'warning');
+                return;
+            }
+
+            if (!content) {
+                showToast('상담 내용을 입력해 주세요.', 'warning');
+                return;
+            }
+
+            const newRecord = {
+                id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                studentName: studentName,
+                counselDate: counselDate,
+                category: category,
+                content: content,
+                createdAt: new Date().toISOString()
+            };
+
+            records.unshift(newRecord); // Add to beginning
+            saveRecordsToStorage();
+
+            renderCounselTable();
+            renderStudentList(); // update counts
+            updateStats();
+
+            // Reset form except date
+            contentInput.value = '';
+            studentSelect.value = '';
+            showToast('상담 기록이 성공적으로 저장되었습니다.');
+        }
+
+        // Render Counseling Records Table
+        function renderCounselTable() {
+            const tbody = document.getElementById('counselTableBody');
+            const emptyState = document.getElementById('counselEmptyState');
+
+            const keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+
+            // Filter Records
+            const filtered = records.filter(rec => {
+                // Keyword match (student name or content)
+                const matchKeyword = !keyword || 
+                    rec.studentName.toLowerCase().includes(keyword) || 
+                    rec.content.toLowerCase().includes(keyword);
+
+                // Date range match
+                const recordDate = rec.counselDate;
+                const matchStart = !startDate || recordDate >= startDate;
+                const matchEnd = !endDate || recordDate <= endDate;
+
+                return matchKeyword && matchStart && matchEnd;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            tbody.innerHTML = filtered.map(rec => {
+                const categoryColorMap = {
+                    '학업/성적': 'bg-blue-100 text-blue-700',
+                    '교우관계': 'bg-pink-100 text-pink-700',
+                    '진로/적성': 'bg-purple-100 text-purple-700',
+                    '생활지도': 'bg-amber-100 text-amber-700',
+                    '가정/신상': 'bg-emerald-100 text-emerald-700',
+                    '기타': 'bg-gray-100 text-gray-700'
+                };
+                const badgeStyle = categoryColorMap[rec.category] || 'bg-gray-100 text-gray-700';
+
+                // Truncate long content for preview
+                const previewContent = rec.content.length > 50 
+                    ? rec.content.substring(0, 50) + '...' 
+                    : rec.content;
+
+                return `
+                    <tr class="hover:bg-blue-50/40 transition-colors">
+                        <td class="py-3 px-4 text-xs font-medium text-gray-600 whitespace-nowrap">${rec.counselDate}</td>
+                        <td class="py-3 px-4 font-semibold text-gray-800 whitespace-nowrap">${escapeHtml(rec.studentName)}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded ${badgeStyle}">
+                                ${escapeHtml(rec.category)}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 cursor-pointer" onclick="openDetailModal('${rec.id}')">
+                            <p class="text-xs text-gray-700 hover:text-google-blue transition-colors line-clamp-2">
+                                ${escapeHtml(previewContent)}
+                            </p>
+                        </td>
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="openDetailModal('${rec.id}')" title="상세보기" class="p-1.5 text-gray-500 hover:text-google-blue hover:bg-blue-50 rounded-lg transition-colors">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="confirmDeleteRecord('${rec.id}')" title="삭제" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // Delete Counseling Record Action
+        function confirmDeleteRecord(recordId) {
+            showConfirm(
+                '상담 기록 삭제',
+                '선택한 상담 기록을 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.',
+                () => {
+                    records = records.filter(r => r.id !== recordId);
+                    saveRecordsToStorage();
+                    renderCounselTable();
+                    renderStudentList();
+                    updateStats();
+                    showToast('상담 기록이 삭제되었습니다.');
+                }
+            );
+        }
+
+        // Reset Table Filters
+        function resetFilters() {
+            document.getElementById('filterKeyword').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            renderCounselTable();
+        }
+
+        // Open Detail Modal
+        function openDetailModal(recordId) {
+            const rec = records.find(r => r.id === recordId);
+            if (!rec) return;
+
+            document.getElementById('modalStudent').textContent = rec.studentName;
+            document.getElementById('modalDate').textContent = rec.counselDate;
+            document.getElementById('modalCategory').textContent = rec.category;
+            document.getElementById('modalContent').textContent = rec.content;
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        // Update Dashboard Summary Stats
+        function updateStats() {
+            document.getElementById('statTotalCount').textContent = `${records.length}건`;
+            document.getElementById('statStudentCount').textContent = `${students.length}명`;
+
+            // Calculate current month's count
+            const currentYm = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+            const monthlyCount = records.filter(r => r.counselDate && r.counselDate.startsWith(currentYm)).length;
+            document.getElementById('statMonthlyCount').textContent = `${monthlyCount}건`;
+
+            // Update Chart Visualizations
+            updateCharts();
+        }
+
+        // Render & Update Chart.js Visualizations
+        function updateCharts() {
+            // 1. Data processing for Horizontal Bar Chart (Student COUNTS)
+            const studentCounts = students.map(student => {
+                const count = records.filter(r => r.studentName === student.name).length;
+                return { name: student.name, count: count };
+            });
+
+            // Sort by counsel count descending
+            studentCounts.sort((a, b) => b.count - a.count);
+
+            const barLabels = studentCounts.map(s => s.name);
+            const barData = studentCounts.map(s => s.count);
+
+            // 2. Data processing for Line Chart (Monthly COUNTS)
+            const monthlyMap = {};
+            records.forEach(r => {
+                if (r.counselDate) {
+                    const ym = r.counselDate.substring(0, 7); // YYYY-MM
+                    monthlyMap[ym] = (monthlyMap[ym] || 0) + 1;
+                }
+            });
+
+            const sortedMonths = Object.keys(monthlyMap).sort();
+            
+            let lineLabels = [];
+            let lineData = [];
+
+            if (sortedMonths.length === 0) {
+                // Default recent 6 months preview if empty
+                const now = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const ym = d.toISOString().substring(0, 7);
+                    lineLabels.push(ym);
+                    lineData.push(0);
+                }
+            } else {
+                lineLabels = sortedMonths;
+                lineData = sortedMonths.map(ym => monthlyMap[ym]);
+            }
+
+            const formattedLineLabels = lineLabels.map(ym => ym.replace('-', '.'));
+
+            // Render/Update Horizontal Bar Chart
+            const ctxBar = document.getElementById('chartStudentCounsel').getContext('2d');
+            if (barChartInstance) {
+                barChartInstance.data.labels = barLabels;
+                barChartInstance.data.datasets[0].data = barData;
+                barChartInstance.update();
+            } else {
+                barChartInstance = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: barLabels,
+                        datasets: [{
+                            label: '상담 횟수',
+                            data: barData,
+                            backgroundColor: 'rgba(26, 115, 232, 0.82)',
+                            borderColor: '#1a73e8',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => ` 누적 상담 ${ctx.raw}회`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, precision: 0 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Render/Update Line Chart
+            const ctxLine = document.getElementById('chartMonthlyCounsel').getContext('2d');
+            if (lineChartInstance) {
+                lineChartInstance.data.labels = formattedLineLabels;
+                lineChartInstance.data.datasets[0].data = lineData;
+                lineChartInstance.update();
+            } else {
+                lineChartInstance = new Chart(ctxLine, {
+                    type: 'line',
+                    data: {
+                        labels: formattedLineLabels,
+                        datasets: [{
+                            label: '월별 상담 건수',
+                            data: lineData,
+                            borderColor: '#1a73e8',
+                            backgroundColor: 'rgba(26, 115, 232, 0.12)',
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: '#1a73e8',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => ` 총 상담 ${ctx.raw}건`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, precision: 0 }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Export Counseling Records to CSV File with UTF-8 BOM
+        function exportToCSV() {
+            if (records.length === 0) {
+                showToast('내보낼 상담 기록 데이터가 없습니다.', 'warning');
+                return;
+            }
+
+            // CSV Header
+            const headers = ['상담일자', '학생명', '상담분야', '상담내용', '작성일시'];
+            
+            // CSV Rows
+            const rows = records.map(rec => [
+                rec.counselDate,
+                rec.studentName,
+                rec.category || '기타',
+                // Escape double quotes and enclose in quotes for CSV compliance
+                `"${(rec.content || '').replace(/"/g, '""')}"`,
+                rec.createdAt || ''
+            ]);
+
+            // Combine CSV Content
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.join(','))
+            ].join('\r\n');
+
+            // UTF-8 BOM (\uFEFF) prevents Excel Korean character encoding corruption
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            const todayStr = new Date().toISOString().split('T')[0];
+            link.setAttribute('href', url);
+            link.setAttribute('download', `학생상담기록목록_${todayStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('엑셀(CSV) 파일 다운로드가 시작되었습니다.');
+        }
+
+        // Backup All System Data (JSON Export)
+        function exportJSONData() {
+            const dataPayload = {
+                students: students,
+                records: records,
+                exportedAt: new Date().toISOString()
+            };
+
+            const jsonStr = JSON.stringify(dataPayload, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            const todayStr = new Date().toISOString().split('T')[0];
+            link.setAttribute('href', url);
+            link.setAttribute('download', `교무상담시스템_백업_${todayStr}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('전체 데이터 백업 파일이 저장되었습니다.');
+        }
+
+        // Load Preset Sample Data for Easy Testing
+        function loadSampleData() {
+            showConfirm(
+                '샘플 데이터 불러오기',
+                '테스트용 학생 명단 및 상담 기록 샘플을 추가하시겠습니까? (기존 데이터는 유지됩니다)',
+                () => {
+                    const sampleStudents = ['김민준', '손경오', '이서연', '박도윤', '최지우', '정현우'];
+                    const sampleCategories = ['학업/성적', '진로/적성', '교우관계', '생활지도', '가정/신상'];
+                    const sampleContents = [
+                        '기말고사 대비 공부 계획 수립 지원. 수학 과목 오답 노트 작성법을 지도함.',
+                        '교무행정 및 학교생활 전반 적응 관련 상담 진행. 진로 목표 설정 및 학업 태도 점검.',
+                        '친구와의 마찰로 인한 고민 상담. 서운했던 마음을 솔직하게 표현하도록 조언함.',
+                        '이공계 진학 희망에 따른 진로 방향 탐색. 관심 분야 탐구활동 주제 논의.',
+                        '최근 지각 횟수가 늘어나 원인을 파악하고 규칙적인 수면 습관 형성을 당부함.'
+                    ];
+
+                    let addedStd = 0;
+                    sampleStudents.forEach(name => {
+                        if (!students.some(s => s.name === name)) {
+                            students.push({
+                                id: 'std_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                                name: name,
+                                createdAt: new Date().toISOString()
+                            });
+                            addedStd++;
+                        }
+                    });
+
+                    // Add sample records
+                    const today = new Date();
+                    for (let i = 0; i < 5; i++) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() - (i * 3)); // every 3 days ago
+                        const dateStr = d.toISOString().split('T')[0];
+
+                        records.push({
+                            id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            studentName: sampleStudents[i % sampleStudents.length],
+                            counselDate: dateStr,
+                            category: sampleCategories[i % sampleCategories.length],
+                            content: sampleContents[i % sampleContents.length],
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+
+                    students.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+                    saveStudentsToStorage();
+                    saveRecordsToStorage();
+
+                    updateStudentDropdown();
+                    renderStudentList();
+                    renderCounselTable();
+                    updateStats();
+
+                    showToast('샘플 데이터가 성공적으로 로드되었습니다.');
+                }
+            );
+        }
+
+        // Custom Confirm Dialog Component
+        function showConfirm(title, message, onOk) {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+
+            const okBtn = document.getElementById('confirmOkBtn');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+
+            const handleOk = () => {
+                onOk();
+                closeConfirm();
+            };
+
+            const closeConfirm = () => {
+                modal.classList.add('hidden');
+                okBtn.removeEventListener('click', handleOk);
+                cancelBtn.removeEventListener('click', closeConfirm);
+            };
+
+            okBtn.addEventListener('click', handleOk);
+            cancelBtn.addEventListener('click', closeConfirm);
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // Toast Notification Helper
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = message;
+
+            if (type === 'warning') {
+                toastIcon.setAttribute('data-lucide', 'alert-circle');
+                toastIcon.className = 'w-4 h-4 text-amber-400';
+            } else {
+                toastIcon.setAttribute('data-lucide', 'check-circle-2');
+                toastIcon.className = 'w-4 h-4 text-emerald-400';
+            }
+            lucide.createIcons();
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // HTML Escape Utility
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&rawgt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
